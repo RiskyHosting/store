@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login — Dinata Store</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="brandbar">
+  <div class="brand-logo">⚡</div>
+  <div class="brand-name">Dinata Store</div>
+</div>
+
+<div class="container">
+  <div class="auth-card">
+    <span class="auth-badge">AUTENTIKASI AKUN</span>
+    <h1 class="auth-title">Masuk ke Dinata Store</h1>
+    <p class="auth-sub">Akses layanan top-up game cepat, aman, dan tanpa ribet.</p>
+
+    <form onsubmit="return doLogin(event)">
+      <div class="field">
+        <label class="field-label">Email atau Username</label>
+        <input class="input" id="loginUser" placeholder="contoh: dinata@store.id" required autocomplete="username">
+      </div>
+      <div class="field">
+        <div class="field-label">
+          <span>Kata Sandi</span>
+          <a href="#" onclick="alert('Hubungi CS: WA 08xxxxxxxxxx'); return false;">Lupa sandi?</a>
+        </div>
+        <input class="input" id="loginPass" type="password" placeholder="••••••••" required autocomplete="current-password">
+      </div>
+      <label class="check-row">
+        <input type="checkbox" class="checkbox" checked>
+        Ingat perangkat ini
+      </label>
+      <button type="submit" class="btn btn-primary" id="btnLogin">Masuk Sekarang 🚀</button>
+    </form>
+
+    <div class="divider"><span>ATAU</span></div>
+    <button class="btn btn-secondary" type="button" onclick="toast('Login Google belum tersedia','info')">Masuk dengan Google</button>
+
+    <p class="auth-foot">Belum punya akun? <a href="register.html">Daftar sekarang</a></p>
+  </div>
+
+  <div class="help-banner">
+    <div>💡 <strong>Butuh bantuan akses akun?</strong></div>
+    <a href="#" onclick="alert('WhatsApp CS: 08xxxxxxxxxx'); return false;">Hubungi CS</a>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-brand"><span>⚡</span> Dinata Store</div>
+    <div class="footer-copy">© 2026 Dinata Store.</div>
+  </div>
+</footer>
+
+<script src="app.js"></script>
+<script>
+async function doLogin(e) {
+  e.preventDefault();
+  const btn = document.getElementById('btnLogin');
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value;
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Memproses...';
+
+  const res = await login(u, p);
+  if (res.error) {
+    toast(res.error, 'error');
+    btn.disabled = false;
+    btn.innerHTML = 'Masuk Sekarang 🚀';
+    return false;
+  }
+  toast('Login berhasil!', 'success');
+  setTimeout(() => location.href = res.role === 'admin' ? 'admin.html' : 'dasbor.html', 600);
+  return false;
+}
+</script>
+</body>
+</html>
