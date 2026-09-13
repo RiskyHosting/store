@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daftar — Dinata Store</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="brandbar">
+  <div class="brand-logo">⚡</div>
+  <div class="brand-name">Dinata Store</div>
+</div>
+
+<div class="container">
+  <div class="auth-card">
+    <span class="auth-badge">BUAT AKUN BARU</span>
+    <h1 class="auth-title">Daftar Dinata Store</h1>
+    <p class="auth-sub">Cukup 30 detik, langsung bisa beli panel & AM Premium.</p>
+
+    <form onsubmit="return doRegister(event)">
+      <div class="field">
+        <label class="field-label">Username</label>
+        <input class="input" id="regUser" placeholder="huruf/angka/_" required minlength="3" maxlength="20">
+      </div>
+      <div class="field">
+        <label class="field-label">Email</label>
+        <input class="input" id="regEmail" type="email" placeholder="email@kamu.com" required>
+      </div>
+      <div class="field">
+        <label class="field-label">Kata Sandi</label>
+        <input class="input" id="regPass" type="password" placeholder="min. 6 karakter" required minlength="6">
+      </div>
+      <button type="submit" class="btn btn-primary" id="btnReg">Daftar Sekarang ✨</button>
+    </form>
+
+    <p class="auth-foot">Sudah punya akun? <a href="login.html">Masuk di sini</a></p>
+  </div>
+
+  <div class="help-banner">
+    <div>💡 <strong>Butuh bantuan?</strong></div>
+    <a href="#" onclick="alert('WhatsApp CS: 08xxxxxxxxxx'); return false;">Hubungi CS</a>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-brand"><span>⚡</span> Dinata Store</div>
+    <div class="footer-copy">© 2026 Dinata Store.</div>
+  </div>
+</footer>
+
+<script src="app.js"></script>
+<script>
+async function doRegister(e) {
+  e.preventDefault();
+  const btn = document.getElementById('btnReg');
+  const username = document.getElementById('regUser').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const password = document.getElementById('regPass').value;
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Mendaftar...';
+
+  const res = await register(username, email, password);
+  if (res.error) {
+    toast(res.error, 'error');
+    btn.disabled = false;
+    btn.innerHTML = 'Daftar Sekarang ✨';
+    return false;
+  }
+  toast('Registrasi berhasil! Silakan login.', 'success');
+  setTimeout(() => location.href = 'login.html', 900);
+  return false;
+}
+</script>
+</body>
+</html>
