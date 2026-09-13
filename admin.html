@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin — Dinata Store</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-brand"><div class="brand-logo">🔐</div> Admin Panel</div>
+  <div class="nav-links">
+    <a href="dasbor.html">Store</a>
+    <a href="#" onclick="logout(); return false;">Logout</a>
+  </div>
+</nav>
+
+<div class="page-head">
+  <h1>Dashboard Admin <span style="font-size:12px;background:#86efac;padding:4px 8px;border-radius:6px;border:2px solid #0a0a0a">● LIVE</span></h1>
+  <p>Update otomatis realtime.</p>
+</div>
+
+<div class="grid-4">
+  <div class="stat-card yellow"><div class="stat-label">💰 Saldo</div><div class="stat-value" id="saldo" style="font-size:16px">Memuat...</div></div>
+  <div class="stat-card blue"><div class="stat-label">📦 Total</div><div class="stat-value" id="totalOrder">0</div></div>
+  <div class="stat-card green"><div class="stat-label">✅ Paid</div><div class="stat-value" id="totalPaid">0</div></div>
+  <div class="stat-card red"><div class="stat-label">⏳ Pending</div><div class="stat-value" id="totalPending">0</div></div>
+</div>
+
+<div class="page-head"><h1 style="font-size:18px">📦 Semua Order</h1></div>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr><th>Invoice</th><th>User</th><th>Produk</th><th>Detail</th><th>Harga</th><th>Status</th><th>Aksi</th></tr>
+    </thead>
+    <tbody id="tblOrders"></tbody>
+  </table>
+</div>
+
+<div class="page-head"><h1 style="font-size:18px">👥 User Terdaftar</h1></div>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr><th>Username</th><th>Email</th><th>Role</th><th>Dibuat</th><th>Aksi</th></tr>
+    </thead>
+    <tbody id="tblUsers"></tbody>
+  </table>
+</div>
+
+<div class="page-head"><h1 style="font-size:18px">💸 Withdraw Saldo</h1></div>
+<div class="form-box">
+  <div class="field">
+    <label class="field-label">Jumlah (Rp)</label>
+    <input class="input" id="wdAmount" type="number" placeholder="50000">
+  </div>
+  <div class="field">
+    <label class="field-label">Metode</label>
+    <select class="input" id="wdMethod">
+      <option value="dana">Dana</option>
+      <option value="gopay">GoPay</option>
+      <option value="ovo">OVO</option>
+      <option value="shopeepay">ShopeePay</option>
+    </select>
+  </div>
+  <div class="field">
+    <label class="field-label">Nomor Akun</label>
+    <input class="input" id="wdAcc" placeholder="08123456789">
+  </div>
+  <div class="field">
+    <label class="field-label">Tipe</label>
+    <select class="input" id="wdInstant">
+      <option value="false">Manual</option>
+      <option value="true">Instant</option>
+    </select>
+  </div>
+  <button class="btn btn-primary" onclick="doWithdraw()">Tarik Saldo 💸</button>
+  <p id="wdMsg" style="margin-top:12px;font-weight:700"></p>
+</div>
+
+<div class="page-head"><h1 style="font-size:18px">🛠️ Tools</h1></div>
+<div class="form-box">
+  <button class="btn btn-secondary" onclick="refreshAll()">🔄 Refresh Manual</button>
+  <button class="btn btn-secondary" style="margin-top:10px" onclick="exportData()">📥 Export Order (JSON)</button>
+  <button class="btn btn-danger" style="margin-top:10px" onclick="clearAll()">🗑️ Hapus Semua Order</button>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-inner"><div class="footer-copy">© 2026 Dinata Store.</div></div>
+</footer>
+
+<script src="app.js"></script>
+<script>
+if (!requireAdmin()) throw 0;
+
+async function loadOrders() {
+  const orders = await getAllOrders();
+  const paid = orders.filter(o => o.status === 'paid').length;
+  const pending = orders.filter(o => o.status === 'pending').length;
+  document.getElementById('totalOrder').textContent = orders.length;
+  document.getElementById('totalPaid').textContent = paid;
+  document.getElementById('totalPending').textContent = pending;
+
+  const tbody = document.getElementById('tblOrders');
+  if (!orders.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#6b7280">Belum ada order</td></tr>';
+    return;
+  }
+  tbody.innerHTML = orders.map(o => {
+    let detail = '-';
+    if (o.detail?.ramLabel) detail = `${o.detail.ramLabel}<br><small>${escapeHTML(o.detail.nama)} • ${escapeHTML(o.detail.kontak)}</small>`;
+    else if (o.detail?.gmail) detail = escapeHTML(o.detail.gmail);
+    return `<tr>
+      <td><code style="font-size:11px">${escapeHTML(o.invoice_id?.slice(0,10))}</code></td>
+      <td>${escapeHTML(o.username)}</td>
+      <td>${escapeHTML(o.produk)}</td>
+      <td>${detail}</td>
+      <td>${rupiah(o.harga)}</td>
+      <td><span class="badge ${o.status}">${o.status}</span></td>
+      <td style="white-space:nowrap">
+        ${o.status !== 'paid' ? `<button class="btn btn-success btn-sm" onclick="markPaid('${o.invoice_id}')">✅</button>` : ''}
+        ${o.status !== 'pending' ? `<button class="btn btn-secondary btn-sm" onclick="markPending('${o.invoice_id}')">⏳</button>` : ''}
+        <button class="btn btn-danger btn-sm" onclick="delOrder('${o.invoice_id}')">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function loadUsers() {
+  const users = await getAllUsers();
+  const tbody = document.getElementById('tblUsers');
+  if (!users.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#6b7280">Belum ada user</td></tr>';
+    return;
+  }
+  tbody.innerHTML = users.map(u => `<tr>
+    <td>${escapeHTML(u.username)}</td>
+    <td>${escapeHTML(u.email)}</td>
+    <td><span class="badge ${u.role === 'admin' ? 'paid' : 'pending'}">${u.role}</span></td>
+    <td style="font-size:12px">${formatDate(u.created_at)}</td>
+    <td>${u.role !== 'admin' ? `<button class="btn btn-danger btn-sm" onclick="delUser('${escapeHTML(u.username)}')">🗑️</button>` : '—'}</td>
+  </tr>`).join('');
+}
+
+async function loadSaldo() {
+  try {
+    const res = await fetch('/api/balance');
+    const d = await res.json();
+    document.getElementById('saldo').textContent = d.balance ? rupiah(d.balance) : 'Gagal';
+  } catch { document.getElementById('saldo').textContent = 'Gagal'; }
+}
+
+async function markPaid(id) {
+  await updateOrderStatus(id, 'paid');
+  toast('Order ditandai PAID', 'success');
+  refreshAll();
+}
+async function markPending(id) {
+  await updateOrderStatus(id, 'pending');
+  toast('Order → PENDING', 'info');
+  refreshAll();
+}
+async function delOrder(id) {
+  if (!confirm('Hapus order ini?')) return;
+  await deleteOrder(id);
+  toast('Order dihapus', 'success');
+  refreshAll();
+}
+async function delUser(username) {
+  if (!confirm('Hapus user ' + username + '?')) return;
+  await deleteUser(username);
+  toast('User dihapus', 'success');
+  refreshAll();
+}
+async function clearAll() {
+  if (!confirm('Hapus SEMUA order?')) return;
+  const orders = await getAllOrders();
+  for (const o of orders) await deleteOrder(o.invoice_id);
+  toast('Semua order dihapus', 'success');
+  refreshAll();
+}
+async function exportData() {
+  const orders = await getAllOrders();
+  const blob = new Blob([JSON.stringify(orders, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'dinata-orders-' + Date.now() + '.json';
+  a.click();
+}
+async function doWithdraw() {
+  const amount = document.getElementById('wdAmount').value;
+  const method = document.getElementById('wdMethod').value;
+  const acc = document.getElementById('wdAcc').value;
+  const instant = document.getElementById('wdInstant').value;
+  if (!amount || !acc) return toast('Isi lengkap!', 'error');
+
+  showLoading('Memproses withdraw...');
+  const data = await api(`/api/withdraw?amount=${amount}&method=${method}&account_number=${acc}&instant=${instant}`);
+  hideLoading();
+  document.getElementById('wdMsg').textContent = data.message || JSON.stringify(data);
+  toast(data.success ? 'Withdraw diajukan!' : 'Withdraw gagal', data.success ? 'success' : 'error');
+}
+
+function refreshAll() { loadOrders(); loadUsers(); loadSaldo(); }
+refreshAll();
+
+startRealtime(() => refreshAll());
+</script>
+</body>
+</html>
