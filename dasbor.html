@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard — Dinata Store</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-brand"><div class="brand-logo">⚡</div> Dinata Store</div>
+  <div class="nav-links">
+    <a href="dasbor.html" class="active">Dashboard</a>
+    <a href="panel.html">Panel</a>
+    <a href="am-prem.html">AM</a>
+    <a href="riwayat.html">Riwayat</a>
+    <a href="#" onclick="logout(); return false;">Logout</a>
+  </div>
+</nav>
+
+<div class="page-head">
+  <h1>Halo, <span id="userName" style="color:#f59e0b">User</span> 👋</h1>
+  <p>Pilih produk yang mau kamu beli:</p>
+</div>
+
+<div class="grid-2">
+  <div class="product-card">
+    <div class="product-icon">🎛️</div>
+    <h3>Panel Pterodactyl</h3>
+    <p>1GB hingga Unlimited. Bebas pilih spec.</p>
+    <a href="panel.html" class="btn btn-primary" style="text-decoration:none">Pesan</a>
+  </div>
+  <div class="product-card">
+    <div class="product-icon">🎬</div>
+    <h3>Alight Motion Premium</h3>
+    <p>Premium 1 Tahun — langsung ke Gmail kamu.</p>
+    <a href="am-prem.html" class="btn btn-primary" style="text-decoration:none">Beli</a>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-inner"><div class="footer-copy">© 2026 Dinata Store.</div></div>
+</footer>
+
+<script src="app.js"></script>
+<script>
+if (!requireAuth()) throw 0;
+document.getElementById('userName').textContent = currentUser().username;
+</script>
+</body>
+</html>
