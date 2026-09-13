@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AM Premium — Dinata Store</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-brand"><div class="brand-logo">⚡</div> Dinata Store</div>
+  <div class="nav-links">
+    <a href="dasbor.html">← Kembali</a>
+    <a href="riwayat.html">Riwayat</a>
+  </div>
+</nav>
+
+<div class="page-head">
+  <h1>🎬 Alight Motion Premium</h1>
+  <p>Premium 1 Tahun — langsung ke akun Gmail pembeli.</p>
+</div>
+
+<div class="form-box">
+  <div class="field">
+    <label class="field-label">Gmail Pembeli</label>
+    <input class="input" id="gmail" type="email" placeholder="contoh@gmail.com">
+  </div>
+  <div class="price-tag">
+    <span>Harga</span>
+    <span>Rp 25.000</span>
+  </div>
+  <button class="btn btn-primary" id="btnBuat" onclick="buatInvoice()">Buat Invoice & Bayar QRIS 🚀</button>
+
+  <div class="invoice-box hidden" id="invoiceBox">
+    <h3>Scan QRIS untuk Bayar</h3>
+    <img id="qrisImg" alt="QRIS">
+    <p style="font-weight:700;margin:8px 0">Total: Rp <span id="totalBayar"></span></p>
+    <a id="payLink" target="_blank" class="btn btn-secondary" style="text-decoration:none;margin-bottom:10px">Buka Halaman Pembayaran</a>
+    <p style="margin-top:10px">Status: <span class="badge pending" id="statusBayar">pending</span></p>
+    <button class="btn btn-primary" style="margin-top:10px" onclick="cekStatus()">Cek Status 🔄</button>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-inner"><div class="footer-copy">© 2026 Dinata Store.</div></div>
+</footer>
+
+<script src="app.js"></script>
+<script>
+if (!requireAuth()) throw 0;
+const HARGA = 25000;
+let currentInvoice = null;
+
+async function buatInvoice() {
+  const btn = document.getElementById('btnBuat');
+  const gmail = document.getElementById('gmail').value.trim();
+  if (!gmail || !/^\S+@\S+\.\S+$/.test(gmail)) return toast('Masukkan Gmail yang valid!', 'error');
+
+  btn.disabled = true;
+  showLoading('Membuat invoice...');
+  const inv = await api(`/api/invoice?amount=${HARGA}`);
+
+  if (!inv || !inv.success) {
+    hideLoading();
+    btn.disabled = false;
+    return toast(inv?.error || 'Gagal buat invoice', 'error');
+  }
+  currentInvoice = inv;
+
+  const save = await createOrder({
+    invoice_id: inv.invoice_id,
+    username: currentUser().username,
+    produk: 'Alight Motion Premium 1 Tahun',
+    detail: { gmail },
+    harga: HARGA,
+    status: 'pending'
+  });
+
+  hideLoading();
+  btn.disabled = false;
+  if (save.error) return toast('Gagal simpan order: ' + save.error, 'error');
+
+  document.getElementById('invoiceBox').classList.remove('hidden');
+  document.getElementById('qrisImg').src = inv.qris_image;
+  document.getElementById('totalBayar').textContent = Number(inv.total).toLocaleString('id-ID');
+  document.getElementById('payLink').href = inv.payment_link;
+  toast('Invoice dibuat! Scan QRIS untuk bayar.', 'success');
+}
+
+async function cekStatus() {
+  if (!currentInvoice) return;
+  showLoading('Cek status...');
+  const data = await api(`/api/cek-invoice?invoice_id=${currentInvoice.invoice_id}`);
+  hideLoading();
+  if (!data) return;
+  const el = document.getElementById('statusBayar');
+  el.textContent = data.status;
+  el.className = 'badge ' + (data.status === 'paid' ? 'paid' : 'pending');
+  if (data.status === 'paid') {
+    await updateOrderStatus(currentInvoice.invoice_id, 'paid');
+    toast('✅ Premium dikirim ke ' + document.getElementById('gmail').value, 'success');
+  } else toast('Status: ' + data.status, 'info');
+}
+</script>
+</body>
+</html>
