@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel Pterodactyl — Dinata Store</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-brand"><div class="brand-logo">⚡</div> Dinata Store</div>
+  <div class="nav-links">
+    <a href="dasbor.html">← Kembali</a>
+    <a href="riwayat.html">Riwayat</a>
+  </div>
+</nav>
+
+<div class="page-head">
+  <h1>🎛️ Order Panel Pterodactyl</h1>
+  <p>Pilih RAM, kasih nama panel, langsung bayar via QRIS.</p>
+</div>
+
+<div class="form-box">
+  <div class="field">
+    <label class="field-label">Pilih RAM</label>
+    <select class="input" id="ram" onchange="updateHarga()">
+      <option value="1000" data-harga="2000">1 GB — Rp 2.000</option>
+      <option value="2000" data-harga="3500">2 GB — Rp 3.500</option>
+      <option value="3000" data-harga="5000">3 GB — Rp 5.000</option>
+      <option value="4000" data-harga="6500">4 GB — Rp 6.500</option>
+      <option value="5000" data-harga="8000">5 GB — Rp 8.000</option>
+      <option value="8000" data-harga="12000">8 GB — Rp 12.000</option>
+      <option value="0" data-harga="15000">Unlimited ♾️ — Rp 15.000</option>
+    </select>
+  </div>
+  <div class="field">
+    <label class="field-label">Nama Panel</label>
+    <input class="input" id="namapanel" placeholder="contoh: dinata-panel" maxlength="30">
+  </div>
+  <div class="field">
+    <label class="field-label">Email / WhatsApp</label>
+    <input class="input" id="kontak" placeholder="email@kamu.com / 08xxx">
+  </div>
+  <div class="price-tag">
+    <span>Total Bayar</span>
+    <span>Rp <span id="totalHarga">2.000</span></span>
+  </div>
+  <button class="btn btn-primary" id="btnBuat" onclick="buatInvoice()">Buat Invoice & Bayar QRIS 🚀</button>
+
+  <div class="invoice-box hidden" id="invoiceBox">
+    <h3>Scan QRIS untuk Bayar</h3>
+    <img id="qrisImg" alt="QRIS">
+    <p style="font-weight:700;margin:8px 0">Total: Rp <span id="totalBayar"></span></p>
+    <a id="payLink" target="_blank" class="btn btn-secondary" style="text-decoration:none;margin-bottom:10px">Buka Halaman Pembayaran</a>
+    <p style="margin-top:10px">Status: <span class="badge pending" id="statusBayar">pending</span></p>
+    <button class="btn btn-primary" style="margin-top:10px" onclick="cekStatus()">Cek Status 🔄</button>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-inner"><div class="footer-copy">© 2026 Dinata Store.</div></div>
+</footer>
+
+<script src="app.js"></script>
+<script>
+if (!requireAuth()) throw 0;
+let currentInvoice = null;
+
+function updateHarga() {
+  const sel = document.getElementById('ram');
+  const h = Number(sel.options[sel.selectedIndex].dataset.harga);
+  document.getElementById('totalHarga').textContent = h.toLocaleString('id-ID');
+}
+
+async function buatInvoice() {
+  const btn = document.getElementById('btnBuat');
+  const sel = document.getElementById('ram');
+  const ram = Number(sel.value);
+  const ramLabel = sel.options[sel.selectedIndex].text.split('—')[0].trim();
+  const harga = Number(sel.options[sel.selectedIndex].dataset.harga);
+  const nama = document.getElementById('namapanel').value.trim();
+  const kontak = document.getElementById('kontak').value.trim();
+
+  if (!nama || nama.length < 3) return toast('Nama panel minimal 3 karakter', 'error');
+  if (!kontak) return toast('Isi email / WhatsApp', 'error');
+
+  btn.disabled = true;
+  showLoading('Membuat invoice...');
+  const inv = await api(`/api/invoice?amount=${harga}`);
+
+  if (!inv || !inv.success) {
+    hideLoading();
+    btn.disabled = false;
+    return toast(inv?.error || 'Gagal buat invoice', 'error');
+  }
+  currentInvoice = inv;
+
+  const save = await createOrder({
+    invoice_id: inv.invoice_id,
+    username: currentUser().username,
+    produk: 'Panel Pterodactyl ' + ramLabel,
+    detail: { ram, ramLabel, nama, kontak },
+    harga,
+    status: 'pending'
+  });
+
+  hideLoading();
+  btn.disabled = false;
+  if (save.error) return toast('Gagal simpan order: ' + save.error, 'error');
+
+  document.getElementById('invoiceBox').classList.remove('hidden');
+  document.getElementById('qrisImg').src = inv.qris_image;
+  document.getElementById('totalBayar').textContent = Number(inv.total).toLocaleString('id-ID');
+  document.getElementById('payLink').href = inv.payment_link;
+  toast('Invoice dibuat! Scan QRIS untuk bayar.', 'success');
+}
+
+async function cekStatus() {
+  if (!currentInvoice) return;
+  showLoading('Cek status...');
+  const data = await api(`/api/cek-invoice?invoice_id=${currentInvoice.invoice_id}`);
+  hideLoading();
+  if (!data) return;
+  const el = document.getElementById('statusBayar');
+  el.textContent = data.status;
+  el.className = 'badge ' + (data.status === 'paid' ? 'paid' : 'pending');
+  if (data.status === 'paid') {
+    await updateOrderStatus(currentInvoice.invoice_id, 'paid');
+    toast('✅ Pembayaran berhasil! Panel akan segera dikirim.', 'success');
+  } else toast('Status: ' + data.status, 'info');
+}
+
+updateHarga();
+</script>
+</body>
+</html>
