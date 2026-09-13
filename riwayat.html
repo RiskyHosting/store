@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Riwayat — Dinata Store</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-brand"><div class="brand-logo">⚡</div> Dinata Store</div>
+  <div class="nav-links">
+    <a href="dasbor.html">Dashboard</a>
+    <a href="riwayat.html" class="active">Riwayat</a>
+    <a href="#" onclick="logout(); return false;">Logout</a>
+  </div>
+</nav>
+
+<div class="page-head">
+  <h1>📜 Riwayat Order</h1>
+  <p>Update otomatis real-time.</p>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr><th>Invoice</th><th>Produk</th><th>Detail</th><th>Harga</th><th>Status</th><th>Tanggal</th></tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-inner"><div class="footer-copy">© 2026 Dinata Store.</div></div>
+</footer>
+
+<script src="app.js"></script>
+<script>
+if (!requireAuth()) throw 0;
+const me = currentUser();
+
+async function render() {
+  const orders = await getMyOrders(me.username);
+  const tbody = document.getElementById('tbody');
+  if (!orders.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#6b7280">Belum ada order</td></tr>';
+    return;
+  }
+  tbody.innerHTML = orders.map(o => {
+    let detail = '-';
+    if (o.detail?.ramLabel) detail = `${escapeHTML(o.detail.ramLabel)} • ${escapeHTML(o.detail.nama)}`;
+    else if (o.detail?.gmail) detail = escapeHTML(o.detail.gmail);
+    return `<tr>
+      <td><code style="font-size:11px">${escapeHTML(o.invoice_id?.slice(0,10))}</code></td>
+      <td>${escapeHTML(o.produk)}</td>
+      <td>${detail}</td>
+      <td>${rupiah(o.harga)}</td>
+      <td><span class="badge ${o.status}">${o.status}</span></td>
+      <td style="font-size:12px">${formatDate(o.created_at)}</td>
+    </tr>`;
+  }).join('');
+}
+
+render();
+setInterval(render, 3000);
+</script>
+</body>
+</html>
